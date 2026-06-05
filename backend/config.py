@@ -15,9 +15,9 @@ class Settings(BaseSettings):
     livekit_api_key: str = ""
     livekit_api_secret: str = ""
 
-    # Anthropic / LLM
-    anthropic_api_key: str = ""
-    llm_model: str = "claude-sonnet-4-6"
+    # Groq — LLM (LLaMA 3.1 70B Versatile)
+    groq_api_key: str = ""
+    llm_model: str = "llama-3.1-70b-versatile"
 
     # STT — Deepgram
     deepgram_api_key: str = ""
@@ -27,11 +27,15 @@ class Settings(BaseSettings):
     elevenlabs_api_key: str = ""
     cartesia_api_key: str = ""
 
-    # Redis
+    # Database
+    # Dev default: SQLite (zero setup). Prod: switch to postgresql+asyncpg://...
+    database_url: str = "sqlite+aiosqlite:///./audit.db"
+
+    # Redis — session store (TTL-keyed by session UUID, never by PHI)
     redis_url: str = "redis://localhost:6379"
     redis_session_ttl_seconds: int = 1800
 
-    # Mock flags — set to false to use real external backends
+    # Mock flags — set to false to call real external backends
     use_mock_fhir: bool = True
     use_mock_talkehr: bool = True
     use_mock_insurance: bool = True

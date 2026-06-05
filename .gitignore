@@ -11,6 +11,13 @@ SRS_*.md
 .env
 .env.*
 !.env.example
+!**/.env.example
+!frontend/.env.local.example
+
+# ─── Database files (local dev only) ──────────────────────────────────────────
+*.db
+*.sqlite
+audit.db
 
 # ─── Python ───────────────────────────────────────────────────────────────────
 __pycache__/
