@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import structlog
-import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
+from routes.health import router as health_router
+from routes.sessions import router as sessions_router
+from routes.webhooks import router as webhooks_router
 
 log = structlog.get_logger()
 
@@ -24,17 +26,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Routes are registered here as each phase adds them:
-# from routes.sessions import router as sessions_router
-# app.include_router(sessions_router)
-
-
-@app.get("/health", tags=["health"])
-async def health() -> dict[str, str]:
-    return {"status": "ok", "environment": settings.environment}
+app.include_router(health_router)
+app.include_router(sessions_router)
+app.include_router(webhooks_router)
 
 
 if __name__ == "__main__":
+    import uvicorn
     uvicorn.run(
         "main:app",
         host="0.0.0.0",

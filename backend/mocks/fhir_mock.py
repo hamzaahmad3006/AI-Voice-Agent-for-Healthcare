@@ -143,7 +143,7 @@ async def create(request: PatientCreateRequest) -> PatientCreateResponse:
     )
 
 
-def get_by_id(patient_id: str) -> PatientRecord | None:
+async def get_by_id(patient_id: str) -> PatientRecord | None:
     return _patients.get(patient_id)
 
 
