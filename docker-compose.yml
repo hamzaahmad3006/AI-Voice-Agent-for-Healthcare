@@ -1,0 +1,24 @@
+services:
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  livekit:
+    image: livekit/livekit-server:latest
+    command: --dev
+    ports:
+      - "7880:7880"   # HTTP / WebSocket
+      - "7881:7881"   # TURN/TLS
+      - "7882:7882/udp"  # TURN/UDP (RTP media)
+    environment:
+      - LIVEKIT_KEYS=devkey:secret
+    depends_on:
+      redis:
+        condition: service_healthy

@@ -5,6 +5,7 @@ export type ServiceStatus = 'ok' | 'degraded' | 'error';
 export interface HealthStatus {
   status: ServiceStatus;
   environment: string;
+  redis: ServiceStatus;
 }
 
 export interface ServiceHealth {

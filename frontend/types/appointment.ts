@@ -12,6 +12,14 @@ export interface SlotResult {
   locationId: string;
 }
 
+export interface AppointmentSummary {
+  sessionId: string;
+  appointmentId: string;
+  confirmationCode: string | null;
+  slotId: string | null;
+  status: AppointmentStatus;
+}
+
 export interface AppointmentResponse {
   appointmentId: string;
   patientId: string;
