@@ -107,5 +107,9 @@ class GroqLLMClient:
         if known:
             ctx_lines.append(f"Known slots: {json.dumps(known)}")
 
+        # Inject available slots for SLOT_SEARCH so LLM can present options.
+        if slots.available_slots_json:
+            ctx_lines.append(f"Available slots (JSON): {slots.available_slots_json}")
+
         ctx_block = "\n".join(ctx_lines)
         return f"{handler.system_prompt}\n\nSESSION CONTEXT:\n{ctx_block}"

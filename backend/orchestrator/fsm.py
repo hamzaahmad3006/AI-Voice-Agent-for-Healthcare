@@ -218,6 +218,10 @@ class FSM:
                     self._session.slots = self._session.slots.model_copy(
                         update={"slot_taken": True, "selected_slot_id": None}
                     )
+            elif tool_name == ToolCallType.LOOKUP_PATIENT:
+                if result.error_message == "ambiguous_patient":
+                    # Cannot resolve patient — transfer to human agent.
+                    self._session.human_requested = True
             elif tool_name == ToolCallType.CHECK_INSURANCE:
                 # Insurance failure is non-blocking; mark as checked so FSM advances.
                 self._session.slots = self._session.slots.model_copy(

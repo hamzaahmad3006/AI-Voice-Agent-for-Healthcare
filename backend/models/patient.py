@@ -63,4 +63,5 @@ class PatientCreateResponse(BaseModel):
 
     patient_id: str
     fhir_id: str
+    created: bool = True
     created_at: str     # ISO 8601
