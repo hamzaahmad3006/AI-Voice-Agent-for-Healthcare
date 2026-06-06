@@ -6,6 +6,7 @@ import { useState } from 'react';
 export default function LandingPage(): JSX.Element {
   const [listening, setListening] = useState(false);
 
+  // Navigate to /call on first click (toggle is just visual feedback)
   const toggle = (): void => setListening((v) => !v);
 
   return (
@@ -78,7 +79,8 @@ export default function LandingPage(): JSX.Element {
             </div>
 
             <div className="flex flex-col items-center gap-md">
-              <button
+              <Link
+                href="/call"
                 onClick={toggle}
                 className={`group relative px-lg py-md rounded-full font-headline-md text-headline-md flex items-center gap-sm shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 ${
                   listening
@@ -89,9 +91,9 @@ export default function LandingPage(): JSX.Element {
                 <span className={`material-symbols-outlined text-[32px] ${listening ? 'animate-pulse' : ''}`}>
                   mic
                 </span>
-                <span>{listening ? 'Listening…' : 'Start Voice Appointment'}</span>
+                <span>{listening ? 'Connecting…' : 'Start Voice Appointment'}</span>
                 <div className="absolute -inset-1 bg-primary/20 rounded-full blur opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              </button>
+              </Link>
 
               <p className="font-caption text-caption text-outline flex items-center gap-xs">
                 <span className="material-symbols-outlined text-[16px]">verified_user</span>
