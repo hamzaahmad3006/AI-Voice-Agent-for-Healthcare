@@ -8,37 +8,40 @@ interface Props {
 export default function TurnLog({ turns }: Props): JSX.Element {
   if (turns.length === 0) {
     return (
-      <p className="py-6 text-center text-sm text-gray-400">No turns recorded.</p>
+      <div className="flex flex-col items-center justify-center py-lg text-center">
+        <span className="material-symbols-outlined text-[40px] text-outline">chat_bubble_outline</span>
+        <p className="mt-xs font-body-md text-body-md text-on-surface-variant">No turns recorded.</p>
+      </div>
     );
   }
 
   return (
-    <ol className="space-y-3">
+    <ol className="flex flex-col gap-sm">
       {turns.map((turn) => (
-        <li key={turn.n} className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-          <div className="mb-2 flex items-center gap-2">
-            <span className="text-xs font-medium text-gray-400">#{turn.n}</span>
+        <li key={turn.n} className="rounded-xl border border-outline-variant bg-surface-container-low p-md">
+          <div className="mb-xs flex items-center gap-xs">
+            <span className="font-label-caps text-label-caps text-outline">#{turn.n}</span>
             <StateBadge state={turn.state} />
             {turn.latencyMs !== null && (
-              <span className="ml-auto text-xs text-gray-400">
-                {turn.latencyMs} ms
-              </span>
+              <span className="ml-auto font-caption text-caption text-outline">{turn.latencyMs} ms</span>
             )}
           </div>
-          {/* Agent utterance */}
-          <div className="flex gap-2">
-            <span className="mt-0.5 flex-shrink-0 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-700">
-              Agent
+
+          {/* Agent */}
+          <div className="flex gap-xs mt-xs">
+            <span className="flex-shrink-0 rounded bg-primary-fixed px-xs py-xs font-label-caps text-label-caps text-on-primary-fixed-variant">
+              AGENT
             </span>
-            <p className="text-sm text-gray-800">{turn.agentText}</p>
+            <p className="font-body-md text-body-md text-on-surface">{turn.agentText}</p>
           </div>
-          {/* Caller utterance */}
+
+          {/* Caller */}
           {turn.callerText !== null && (
-            <div className="mt-2 flex gap-2">
-              <span className="mt-0.5 flex-shrink-0 rounded bg-gray-200 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600">
-                Caller
+            <div className="flex gap-xs mt-xs">
+              <span className="flex-shrink-0 rounded bg-surface-container-high px-xs py-xs font-label-caps text-label-caps text-on-surface-variant">
+                CALLER
               </span>
-              <p className="text-sm text-gray-700">{turn.callerText}</p>
+              <p className="font-body-md text-body-md text-on-surface-variant">{turn.callerText}</p>
             </div>
           )}
         </li>
