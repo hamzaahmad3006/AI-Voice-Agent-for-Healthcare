@@ -99,6 +99,11 @@ class SessionSlots(BaseModel):
     appointment_id: str | None = None
     confirmation_code: str | None = None
 
+    # FSM control flags (set by tool results / intent mapping — never by LLM slots)
+    coverage_checked: bool = False   # True once check_insurance tool completes
+    change_requested: bool = False   # True when caller requests changes in CONFIRM state
+    slot_taken: bool = False         # True when book_appointment fails with slot_taken
+
 
 class ConversationSession(BaseModel):
     """Live session state stored in Redis, keyed by session_id UUID."""
