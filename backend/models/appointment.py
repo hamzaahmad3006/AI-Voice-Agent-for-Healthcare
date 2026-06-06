@@ -67,6 +67,18 @@ class BookingRequest(BaseModel):
     idempotency_key: str    # prevents double-booking on retry
 
 
+class AppointmentSummary(BaseModel):
+    """Minimal appointment view surfaced by the dashboard API."""
+
+    model_config = ConfigDict(strict=True)
+
+    session_id: str
+    appointment_id: str
+    confirmation_code: str | None = None
+    slot_id: str | None = None
+    status: AppointmentStatus = AppointmentStatus.BOOKED
+
+
 class AppointmentResponse(BaseModel):
     """Confirmed appointment returned from the scheduling backend."""
 

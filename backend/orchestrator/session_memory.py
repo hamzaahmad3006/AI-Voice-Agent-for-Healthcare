@@ -59,6 +59,19 @@ class SessionMemory:
         await self._redis.delete(key)
         logger.debug("Session deleted: %s", session_id)
 
+    async def list_all(self) -> list[ConversationSession]:
+        """Return all live sessions by scanning Redis for session:* keys."""
+        sessions: list[ConversationSession] = []
+        async for key in self._redis.scan_iter(match=f"{_KEY_PREFIX}*"):
+            raw = await self._redis.get(key)
+            if raw is None:
+                continue
+            try:
+                sessions.append(ConversationSession.model_validate_json(raw))
+            except Exception as exc:
+                logger.error("Failed to deserialise session during list: %s", exc)
+        return sessions
+
     async def close(self) -> None:
         """Close the Redis connection pool."""
         await self._redis.aclose()

@@ -56,6 +56,19 @@ class ToolCallLog(BaseModel):
     error_message: str | None = None
 
 
+class SessionListItem(BaseModel):
+    """Lightweight summary row for the session list endpoint."""
+
+    model_config = ConfigDict(strict=True)
+
+    session_id: str
+    started_at: str
+    ended_at: str | None = None
+    outcome: SessionOutcome | None = None
+    final_state: FSMState
+    patient_id: str | None = None  # PHI — redacted in public responses
+
+
 class SessionLog(BaseModel):
     """Append-only, encrypted audit record for a single call session.
 
