@@ -46,7 +46,7 @@ export default function CallPage(): JSX.Element {
   // ── Timer ────────────────────────────────────────────────────────────────
   useEffect(() => {
     const id = setInterval(() => setSeconds((s) => s + 1), 1000);
-    return () => clearInterval(id);
+    return (): void => clearInterval(id);
   }, []);
 
   // ── Waveform ─────────────────────────────────────────────────────────────
@@ -81,7 +81,7 @@ export default function CallPage(): JSX.Element {
     }
     rafRef.current = requestAnimationFrame(animate);
 
-    return () => {
+    return (): void => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
       if (timeoutRef.current !== null) clearTimeout(timeoutRef.current);
     };
@@ -160,9 +160,9 @@ export default function CallPage(): JSX.Element {
                 </span>
               </button>
 
-              {/* End call → back to home */}
+              {/* End call → confirmation screen */}
               <Link
-                href="/"
+                href="/confirmation"
                 className="w-20 h-20 rounded-full bg-error text-on-error flex items-center justify-center shadow-lg shadow-error/20 hover:scale-105 active:scale-95 transition-all duration-300"
               >
                 <span className="material-symbols-outlined text-[32px] fill-icon">call_end</span>
