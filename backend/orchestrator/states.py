@@ -135,17 +135,19 @@ Slots to extract: none
         system_prompt=_GLOBAL_PROMPT + """
 
 STATE: IDENTIFY
-Goal: Collect first_name, last_name, date_of_birth, and phone — one at a time.
+Goal: Collect first_name, last_name, date_of_birth, phone — one at a time, in order.
 Intents: "providing_identity" | "identity_incomplete" | "request_human"
-Slots to extract: first_name, last_name, date_of_birth (YYYY-MM-DD), phone (digits only, strip spaces/dashes)
+Slots to extract: first_name, last_name, date_of_birth (YYYY-MM-DD), phone (digits only)
 
-SLOT EXTRACTION RULES (follow exactly):
-1. Look at Known slots. Find the FIRST slot that is still missing in this order: first_name → last_name → date_of_birth → phone.
-2. The caller's response IS the value for that next missing slot — accept it unconditionally, even if it is short (e.g. "Ho", "Li", "Jo") or sounds like a first name. Never return null for the slot you just asked about.
-3. Ask for exactly the NEXT missing slot. Nothing else.
-4. Once ALL FOUR slots are set, call lookup_patient immediately with all four values.
-5. date_of_birth: convert spoken dates to YYYY-MM-DD (e.g. "19 November 2001" → "2001-11-19").
-6. phone: strip all spaces, dashes, parentheses — keep only digits.
+RULES — follow exactly, no exceptions:
+1. Check Known slots. The NEXT missing slot in this order is what you are collecting: first_name → last_name → date_of_birth → phone.
+2. NAME SLOTS (first_name, last_name): whatever the caller says IS the value. Accept unconditionally — "Ho", "Li", "Jo", "Khan", even if short or unusual. Strip only conversational filler ("it's", "my name is", "it is") and store the actual name word(s).
+3. DATE OF BIRTH: must have day + month + year. Convert to YYYY-MM-DD.
+   - Full date given → set date_of_birth and continue.
+   - Only year given (e.g. "2005") or only partial → return date_of_birth: null and ask "What is your full date of birth — day, month, and year?"
+4. PHONE: strip all spaces, dashes, parentheses — keep digits only. Accept any 4+ digit string the caller gives.
+5. NEVER ask "Is this correct?", "Is that right?", or any confirmation. Never summarize what you collected.
+6. Once ALL FOUR slots have values, call lookup_patient IMMEDIATELY with all four. No other action.
 """,
         allowed_slots=["first_name", "last_name", "date_of_birth", "phone"],
         permitted_tool_calls=[ToolCallType.LOOKUP_PATIENT],
@@ -208,11 +210,20 @@ RULES (follow exactly):
         system_prompt=_GLOBAL_PROMPT + """
 
 STATE: VISIT_INTAKE
-Goal: Get visit reason and location.
+Goal: Get reason_for_visit and location_id — both required to proceed.
 Intents: "visit_details_provided" | "visit_details_incomplete" | "request_human"
 Slots to extract: reason_for_visit, location_id, urgency (routine|soon|urgent), visit_type, provider_id (optional)
-- Ask reason and preferred clinic in one question.
-- Infer urgency from reason if not stated. Ask only for missing slots.
+
+RULES:
+- Ask for both reason and preferred clinic in one question if neither is set.
+- Infer urgency from the reason (e.g. "stomach pain" → routine/soon).
+- CLINIC MAPPING — if caller says any of these, use the location_id shown:
+    "any", "anyone", "anywhere", "any clinic", "doesn't matter", "nearest", "closest" → LOC001
+    "downtown" → LOC001
+    "north", "northside" → LOC002
+    "east", "eastside" → LOC003
+- "anyone" or "any" for clinic NEVER means "transfer to a human" — it means LOC001.
+- Only set intent to "request_human" if caller explicitly says "talk to a person", "human agent", "representative", or "cancel".
 """,
         allowed_slots=[
             "reason_for_visit",
