@@ -135,6 +135,29 @@ class FSM:
         # 4. Apply LLM-extracted string slots (string fields only).
         self._apply_llm_slots(llm_turn.slots, handler)
 
+        # 4b. RETRIEVE_OR_CREATE: if LLM skipped create_patient for a new patient,
+        # force it deterministically — never leave a new patient without a record.
+        if (
+            previous_state == FSMState.RETRIEVE_OR_CREATE
+            and self._session.slots.is_new_patient is True
+            and self._session.slots.patient_id is None
+            and llm_turn.tool_call is None
+        ):
+            llm_turn = LLMTurn(
+                intent="creating_new",
+                slots={},
+                response_text=llm_turn.response_text or "Creating your record now.",
+                tool_call=LLMToolCall(
+                    name=ToolCallType.CREATE_PATIENT,
+                    arguments={
+                        "first_name": self._session.slots.first_name or "",
+                        "last_name": self._session.slots.last_name or "",
+                        "date_of_birth": self._session.slots.date_of_birth or "",
+                        "phone": self._session.slots.phone or "",
+                    },
+                ),
+            )
+
         # 5. Execute tool call if present and permitted by this state.
         tool_executed: ToolCallType | None = None
         if llm_turn.tool_call is not None:

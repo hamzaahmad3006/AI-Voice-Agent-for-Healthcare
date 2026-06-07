@@ -65,6 +65,8 @@ export default function CallPage(): JSX.Element {
   const secondsRef = useRef(0);
   const sessionIdRef = useRef<string | null>(null);
   const sessionEndedRef = useRef(false);
+  const statusRef = useRef<CallStatus>('connecting');
+  const turnInProgressRef = useRef(false);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const waveformRef = useRef<HTMLDivElement>(null);
   const barsRef = useRef<HTMLDivElement[]>([]);
@@ -117,6 +119,9 @@ export default function CallPage(): JSX.Element {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
   }, [messages]);
 
+  // Keep statusRef in sync so async callbacks always see the latest status
+  statusRef.current = status;
+
   // ── Stable function refs (updated every render, called only in async callbacks)
   // Allows mutual recursion between speak ↔ listen without circular useCallback deps.
 
@@ -135,12 +140,15 @@ export default function CallPage(): JSX.Element {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 1.0;
     setStatus('speaking');
+    statusRef.current = 'speaking';
 
     let fired = false;
     const onDone = (): void => {
       if (fired) return;
       fired = true;
       clearTimeout(fallback);
+      window.speechSynthesis.cancel(); // stop TTS if fallback timer fired early
+      statusRef.current = 'idle';
       setStatus('idle');
       if (autoListen && !sessionEndedRef.current) {
         // Brief pause so the mic doesn't pick up the TTS echo
@@ -148,11 +156,13 @@ export default function CallPage(): JSX.Element {
       }
     };
 
-    // Safety fallback: ~80 ms per character + 2 s buffer
-    const fallback = setTimeout(onDone, text.length * 80 + 2000);
+    // Cap at 30 s — long LLM responses can cause onend to never fire in Chrome
+    const wordCount = text.trim().split(/\s+/).length;
+    const estimatedMs = Math.min((wordCount / 150) * 60_000 + 3_000, 30_000);
+    const fallback = setTimeout(onDone, estimatedMs);
     utterance.onend = onDone;
     utterance.onerror = (): void => {
-      if (!fired) { fired = true; clearTimeout(fallback); setStatus('idle'); }
+      if (!fired) { fired = true; clearTimeout(fallback); statusRef.current = 'idle'; setStatus('idle'); }
     };
     window.speechSynthesis.speak(utterance);
   };
@@ -160,6 +170,8 @@ export default function CallPage(): JSX.Element {
   listenRef.current = (): void => {
     const sid = sessionIdRef.current;
     if (!sid || sessionEndedRef.current) return;
+    // Only start listening when fully idle — prevents concurrent turns
+    if (statusRef.current !== 'idle') return;
 
     const SpeechRec = getSpeechRecognitionCtor();
     if (!SpeechRec) return;
@@ -171,17 +183,27 @@ export default function CallPage(): JSX.Element {
     recognition.lang = 'en-US';
     recognitionRef.current = recognition;
 
-    recognition.onstart = (): void => setStatus('listening');
+    recognition.onstart = (): void => {
+      statusRef.current = 'listening';
+      setStatus('listening');
+    };
     recognition.onend = (): void => {
-      setStatus((prev) => (prev === 'listening' ? 'idle' : prev));
+      if (statusRef.current === 'listening') {
+        statusRef.current = 'idle';
+        setStatus('idle');
+      }
     };
 
     recognition.onresult = (event: SpeechRecognitionEvent): void => {
       const alt = event.results[0]?.[0];
       if (!alt) return;
+      // Drop result if a turn is already being processed (debounce concurrent "yes yes yes")
+      if (turnInProgressRef.current) return;
+      turnInProgressRef.current = true;
 
       const text = alt.transcript;
       addMessageRef.current('user', text);
+      statusRef.current = 'processing';
       setStatus('processing');
 
       sendTurn(sid, text)
@@ -189,20 +211,27 @@ export default function CallPage(): JSX.Element {
           addMessageRef.current('ai', response_text);
           if (session_ended) {
             sessionEndedRef.current = true;
+            turnInProgressRef.current = false;
             setStatus('ended');
             speakRef.current(response_text, false); // speak closing, don't auto-listen
           } else {
+            turnInProgressRef.current = false;
             speakRef.current(response_text); // speak then auto-listen
           }
         })
         .catch(() => {
+          turnInProgressRef.current = false;
           addMessageRef.current('ai', 'Connection error. Please tap the mic and try again.');
+          statusRef.current = 'idle';
           setStatus('idle');
         });
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent): void => {
-      if (event.error !== 'no-speech') setStatus('idle');
+      if (event.error !== 'no-speech') {
+        statusRef.current = 'idle';
+        setStatus('idle');
+      }
     };
 
     recognition.start();
@@ -235,10 +264,13 @@ export default function CallPage(): JSX.Element {
     if (sessionEndedRef.current || status === 'processing') return;
     if (status === 'listening') {
       recognitionRef.current?.abort();
+      statusRef.current = 'idle';
       setStatus('idle');
       return;
     }
     window.speechSynthesis.cancel();
+    turnInProgressRef.current = false; // manual start always resets the lock
+    statusRef.current = 'idle';
     listenRef.current();
   };
 

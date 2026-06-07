@@ -168,11 +168,15 @@ Slots to extract: first_name, last_name, date_of_birth (YYYY-MM-DD), phone (digi
         system_prompt=_GLOBAL_PROMPT + """
 
 STATE: RETRIEVE_OR_CREATE
-Goal: Confirm patient record exists before proceeding.
+Goal: Load or create the patient record — DO NOT ask for confirmation. Act immediately.
 Intents: "record_confirmed" | "creating_new" | "request_human"
 Slots to extract: none
-- Existing patient: confirm name briefly, proceed.
-- New patient: say creating record, call create_patient: {"first_name","last_name","date_of_birth","phone"}
+
+RULES (follow exactly):
+- If patient_id is already set: say "Got your record." and set intent to "record_confirmed". No tool call needed.
+- If is_new_patient is true AND patient_id is null: say "Creating your record." and IMMEDIATELY call create_patient with all known slots. Do NOT ask the caller anything. Do NOT summarize the patient details.
+- Never list the patient's name, DOB, or phone back to them.
+- Never ask "Is this correct?" — no confirmation step.
 """,
         allowed_slots=[],
         permitted_tool_calls=[ToolCallType.CREATE_PATIENT],
