@@ -35,8 +35,8 @@ class ToolCallType(StrEnum):
 class LLMToolCall(BaseModel):
     """A tool-call request produced by the LLM for the FSM to validate and execute."""
 
-    model_config = ConfigDict(strict=True)
-
+    # No strict=True — LLM returns plain strings for enum fields (e.g. "lookup_patient")
+    # and Pydantic must coerce str → ToolCallType via normal validation.
     name: ToolCallType
     arguments: dict[str, str | int | float | bool | None]
 
@@ -47,8 +47,7 @@ class LLMTurn(BaseModel):
     The orchestrator parses this JSON deterministically — no free-text scraping.
     """
 
-    model_config = ConfigDict(strict=True)
-
+    # No strict=True — LLM JSON output uses plain Python types (str, None, dict).
     intent: str
     slots: dict[str, str | None]
     response_text: str
