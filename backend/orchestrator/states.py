@@ -135,11 +135,17 @@ Slots to extract: none
         system_prompt=_GLOBAL_PROMPT + """
 
 STATE: IDENTIFY
-Goal: Collect name, date of birth, and phone number.
+Goal: Collect first_name, last_name, date_of_birth, and phone — one at a time.
 Intents: "providing_identity" | "identity_incomplete" | "request_human"
-Slots to extract: first_name, last_name, date_of_birth (YYYY-MM-DD), phone (digits only)
-- Ask only for the next missing slot.
-- Once all four collected, call lookup_patient: {"first_name","last_name","date_of_birth","phone"}
+Slots to extract: first_name, last_name, date_of_birth (YYYY-MM-DD), phone (digits only, strip spaces/dashes)
+
+SLOT EXTRACTION RULES (follow exactly):
+1. Look at Known slots. Find the FIRST slot that is still missing in this order: first_name → last_name → date_of_birth → phone.
+2. The caller's response IS the value for that next missing slot — accept it unconditionally, even if it is short (e.g. "Ho", "Li", "Jo") or sounds like a first name. Never return null for the slot you just asked about.
+3. Ask for exactly the NEXT missing slot. Nothing else.
+4. Once ALL FOUR slots are set, call lookup_patient immediately with all four values.
+5. date_of_birth: convert spoken dates to YYYY-MM-DD (e.g. "19 November 2001" → "2001-11-19").
+6. phone: strip all spaces, dashes, parentheses — keep only digits.
 """,
         allowed_slots=["first_name", "last_name", "date_of_birth", "phone"],
         permitted_tool_calls=[ToolCallType.LOOKUP_PATIENT],

@@ -188,9 +188,15 @@ export default function CallPage(): JSX.Element {
       setStatus('listening');
     };
     recognition.onend = (): void => {
+      // onend fires after every recognition session — whether speech was captured or not.
       if (statusRef.current === 'listening') {
         statusRef.current = 'idle';
         setStatus('idle');
+        // No result was captured (no-speech timeout). Restart automatically so the
+        // caller never has to touch the mic button — just like a real phone call.
+        if (!turnInProgressRef.current && !sessionEndedRef.current) {
+          setTimeout(() => listenRef.current(), 300);
+        }
       }
     };
 
