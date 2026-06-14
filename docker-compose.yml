@@ -10,16 +10,6 @@ services:
       timeout: 3s
       retries: 5
 
-  livekit:
-    image: livekit/livekit-server:latest
-    command: --dev
-    ports:
-      - "7880:7880"
-      - "7881:7881"
-      - "7882:7882/udp"
-    environment:
-      - LIVEKIT_KEYS=devkey:secret
-
   backend:
     build: ./backend
     ports:
@@ -27,11 +17,7 @@ services:
     env_file: ./backend/.env
     environment:
       - REDIS_URL=redis://redis:6379
-      - LIVEKIT_URL=ws://livekit:7880
     depends_on:
       redis:
         condition: service_healthy
-      livekit:
-        condition: service_started
-    restart: on-failure
-
+    restart: unless-stopped

@@ -17,7 +17,7 @@ class Settings(BaseSettings):
 
     # Groq — LLM (LLaMA 3.1 70B Versatile)
     groq_api_key: str = ""
-    llm_model: str = "llama-3.1-70b-versatile"
+    llm_model: str = "llama-3.3-70b-versatile"
 
     # STT — Deepgram
     deepgram_api_key: str = ""

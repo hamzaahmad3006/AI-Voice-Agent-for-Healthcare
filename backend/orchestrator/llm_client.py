@@ -52,7 +52,7 @@ class GroqLLMClient:
                 ],
                 response_format={"type": "json_object"},
                 temperature=0.1,
-                max_tokens=512,
+                max_tokens=400,
             )
         except APITimeoutError as exc:
             logger.error("Groq timeout in state %s: %s", state_handler.state, exc)

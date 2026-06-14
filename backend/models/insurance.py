@@ -29,7 +29,7 @@ class InsuranceCheckResponse(BaseModel):
     plan_name: str | None = None
     checked_at: str     # ISO 8601
     notes: str | None = None
-    requires_staff_verification: bool = False  # true when eligibility == UNKNOWN
+    requires_staff_verification: bool = False  
 
 
 class Coverage(BaseModel):

@@ -118,6 +118,11 @@ class FSM:
                 session_ended=True,
             )
 
+        # RETRIEVE_OR_CREATE is fully deterministic — the LLM is unreliable here
+        # because it cannot see identity slots and may ask unnecessary questions.
+        if previous_state == FSMState.RETRIEVE_OR_CREATE:
+            return await self._handle_retrieve_or_create()
+
         # 1. Call LLM within the current state's system prompt boundary.
         llm_turn = await self._llm.call(
             state_handler=handler,
@@ -239,3 +244,70 @@ class FSM:
                 )
                 return transition.target
         return self._session.current_state
+
+    async def _handle_retrieve_or_create(self) -> FSMResult:
+        """Deterministic handler for RETRIEVE_OR_CREATE — no LLM involved.
+
+        Existing patient: patient_id already set → go straight to VISIT_INTAKE.
+        New patient: call create_patient with session slots → then go to VISIT_INTAKE.
+        """
+        slots = self._session.slots
+
+        if slots.patient_id is not None:
+            # Existing patient found by lookup_patient in IDENTIFY — proceed.
+            next_state = FSMState.VISIT_INTAKE
+            self._session.current_state = next_state
+            self._session.turn_count += 1
+            return FSMResult(
+                response_text="Got your record.",
+                previous_state=FSMState.RETRIEVE_OR_CREATE,
+                current_state=next_state,
+                transitioned=True,
+                session_ended=False,
+            )
+
+        if slots.is_new_patient is True:
+            tool_call = LLMToolCall(
+                name=ToolCallType.CREATE_PATIENT,
+                arguments={
+                    "first_name": slots.first_name or "",
+                    "last_name": slots.last_name or "",
+                    "date_of_birth": slots.date_of_birth or "",
+                    "phone": slots.phone or "",
+                },
+            )
+            result = await self._tools.dispatch(tool_call, self._session)
+            self._apply_tool_result(ToolCallType.CREATE_PATIENT, result)
+
+            if self._session.slots.patient_id is not None:
+                next_state = FSMState.VISIT_INTAKE
+                response = "Your record is ready."
+            else:
+                next_state = FSMState.ERROR_FALLBACK
+                response = "I'm sorry, I couldn't create your record. Transferring you now."
+
+            self._session.current_state = next_state
+            self._session.turn_count += 1
+            return FSMResult(
+                response_text=response,
+                previous_state=FSMState.RETRIEVE_OR_CREATE,
+                current_state=next_state,
+                transitioned=True,
+                tool_executed=ToolCallType.CREATE_PATIENT,
+                session_ended=next_state in TERMINAL_STATES,
+            )
+
+        # Unexpected state — should never happen if IDENTIFY ran correctly.
+        logger.error(
+            "RETRIEVE_OR_CREATE reached with no patient_id and is_new_patient=None"
+        )
+        next_state = FSMState.ERROR_FALLBACK
+        self._session.current_state = next_state
+        self._session.turn_count += 1
+        return FSMResult(
+            response_text="I'm sorry, there was a problem with your record. Transferring you now.",
+            previous_state=FSMState.RETRIEVE_OR_CREATE,
+            current_state=next_state,
+            transitioned=True,
+            session_ended=True,
+        )

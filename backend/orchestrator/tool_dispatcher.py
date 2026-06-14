@@ -195,11 +195,14 @@ class DomainToolDispatcher:
         self, tool_call: LLMToolCall, session: ConversationSession
     ) -> ToolResult:
         from helpers import consent_helper
+        from models.fsm_state import FSMState
 
         slots = session.slots
 
-        # Determine consent type from session state
-        if not slots.data_consent_given:
+        # Use current_state (not slot values) to determine consent type.
+        # intent_to_slots runs before this tool call, so slot values are already updated —
+        # checking them would give the wrong branch.
+        if session.current_state == FSMState.CONSENT_DATA:
             consent_type = ConsentType.DATA_PROCESSING
             consent_value = ConsentValue.YES if slots.data_consent_given else ConsentValue.NO
         else:
