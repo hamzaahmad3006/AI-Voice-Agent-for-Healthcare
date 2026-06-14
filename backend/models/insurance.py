@@ -21,7 +21,15 @@ class InsuranceCheckRequest(BaseModel):
     provider_id: str
 
 
+class InsuranceCheckResponse(BaseModel):
+    model_config = ConfigDict(strict=True)
 
+    eligibility: EligibilityStatus
+    in_network: bool | None = None
+    plan_name: str | None = None
+    checked_at: str     # ISO 8601
+    notes: str | None = None
+    requires_staff_verification: bool = False  
 
 
 class Coverage(BaseModel):
